@@ -1,5 +1,4 @@
 # Module for webtrees genealogy software. A Miscelaneous features module
-========================================================================
 
 [![Latest Release](https://img.shields.io/github/release/elysch/webtrees-mitalteli-misc-features.svg)][1]
 [![webtrees major version](https://img.shields.io/badge/webtrees-v2.0.x-green)][2]
@@ -44,7 +43,9 @@ Supports all record types: Individual, Family, Source, Repository, Note, Media, 
 
 > [!CAUTION]
 > **Severe Slowdowns on Large Trees (UID / _UID Searches)**
-> `webtrees` lacks database indexes on `UID` and `_UID` fields. Because of how the current database architecture is structured, there is no way to add manual indexes to mitigate the underlying performance bottleneck. You can find more information [in this issue opened on webtrees github page][4]
+> `webtrees` lacks database indexes on `UID` and `_UID` fields. Because of how the current database architecture is structured, there is no way to add manual indexes to mitigate the underlying performance bottleneck. 
+> You can find more information [in this issue opened on webtrees github page][4]. 
+> _**NOTE:** My tree has 962 individuals, 382 families, 253 sources, 674 media objects 1,689 events and works fine for me (2026-05-25)_
 
 ### 📉 The Problem
 When performing general searches or resolving references, the system is forced to scan every single record in the database one by one (Full Table Scan). If your tree is very large, this will result in:

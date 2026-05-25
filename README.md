@@ -1,5 +1,5 @@
 # Module for webtrees genealogy software. A Miscelaneous features module
-===
+========================================================================
 
 [![Latest Release](https://img.shields.io/github/release/elysch/webtrees-mitalteli-misc-features.svg)][1]
 [![webtrees major version](https://img.shields.io/badge/webtrees-v2.0.x-green)][2]

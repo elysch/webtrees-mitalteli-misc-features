@@ -1,5 +1,5 @@
 # Module for webtrees genealogy software. A Miscelaneous features module
-========================================================================
+===
 
 [![Latest Release](https://img.shields.io/github/release/elysch/webtrees-mitalteli-misc-features.svg)][1]
 [![webtrees major version](https://img.shields.io/badge/webtrees-v2.0.x-green)][2]
@@ -96,19 +96,6 @@ all matching events.
 Adds `COHABITATION` as a recognised value for `MARR:TYPE`, displayed as
 *"Cohabitation"* in the UI. Also canonicalises the GEDCOM 5.5EL abbreviation
 `RELI` → `RELIGIOUS`.
-
----
-
-### 5. NetworkService
-
-A utility service class that queries WHOIS servers (radb.net, ripe.net) to
-retrieve the IPv4/IPv6 CIDR prefixes announced by an Autonomous System Number:
-
-```php
-$ranges = app(\MitalteliMiscFeatures\Services\NetworkService::class)
-              ->findIpRangesForAsn('AS15169');
-// ['8.8.8.0/24', '8.8.4.0/24', ...]
-```
 
 ---
 

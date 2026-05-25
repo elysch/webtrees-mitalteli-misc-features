@@ -44,7 +44,7 @@ Supports all record types: Individual, Family, Source, Repository, Note, Media, 
 
 > [!CAUTION]
 > **Severe Slowdowns on Large Trees (UID / _UID Searches)**
-> `webtrees` lacks database indexes on `UID` and `_UID` fields. Because of how the current database architecture is structured, adding manual indexes **will not fix** the underlying performance bottleneck.
+> `webtrees` lacks database indexes on `UID` and `_UID` fields. Because of how the current database architecture is structured, there is no way to add manual indexes to mitigate the underlying performance bottleneck.
 
 ### 📉 The Problem
 When performing general searches or resolving references, the system is forced to scan every single record in the database one by one (Full Table Scan). If your tree is very large, this will result in:

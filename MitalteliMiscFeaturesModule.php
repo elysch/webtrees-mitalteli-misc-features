@@ -59,8 +59,12 @@ class MitalteliMiscFeaturesModule extends AbstractModule implements
     public function description(): string
     {
         return I18N::translate(
-            'Adds UID/UUID markdown links, extended birth/death place search, ' .
-            'COHABITATION marriage type, and more.'
+            'Adds UID/UUID markdown links, extended birth/death place search, </br>' .
+            'COHABITATION marriage type, and more.</br></br>' .
+            '<div class="markdown-alert" dir="auto">🛑<g-emoji class="g-emoji" alias="warning">⚠️</g-emoji> Critical Performance Warning (Scalability Limits)</div>' .
+            '<div class="markdown-alert markdown-alert-caution" dir="auto"><p class="markdown-alert-title" dir="auto"><svg data-component="Octicon" class="octicon octicon-stop mr-2" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path d="M4.47.22A.749.749 0 0 1 5 0h6c.199 0 .389.079.53.22l4.25 4.25c.141.14.22.331.22.53v6a.749.749 0 0 1-.22.53l-4.25 4.25A.749.749 0 0 1 11 16H5a.749.749 0 0 1-.53-.22L.22 11.53A.749.749 0 0 1 0 11V5c0-.199.079-.389.22-.53Zm.84 1.28L1.5 5.31v5.38l3.81 3.81h5.38l3.81-3.81V5.31L10.69 1.5ZM8 4a.75.75 0 0 1 .75.75v3.5a.75.75 0 0 1-1.5 0v-3.5A.75.75 0 0 1 8 4Zm0 8a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"></path></svg>Caution</p><p dir="auto"><strong>Severe Slowdowns on Large Trees (UID / _UID Searches)</strong>
+<code>webtrees</code> lacks database indexes on <code>UID</code> and <code>_UID</code> fields. Because of how the current database architecture is structured, there is no way to add manual indexes to mitigate the underlying performance bottleneck.</p>
+</div>'
         );
     }
 

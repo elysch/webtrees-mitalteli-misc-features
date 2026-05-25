@@ -40,6 +40,22 @@ Supports all record types: Individual, Family, Source, Repository, Note, Media, 
 > correctly link to an individual even if their `_UID` is stored as a 38-char
 > Ancestry-style value. The first 32 hex characters are used for matching.
 
+## 🛑⚠️ Critical Performance Warning (Scalability Limits)
+
+> [!CAUTION]
+> **Severe Slowdowns on Large Trees (UID / _UID Searches)**
+> `webtrees` lacks database indexes on `UID` and `_UID` fields. Because of how the current database architecture is structured, adding manual indexes **will not fix** the underlying performance bottleneck.
+
+### 📉 The Problem
+When performing general searches or resolving references, the system is forced to scan every single record in the database one by one (Full Table Scan). If your tree is very large, this will result in:
+* **Extreme delays** during basic search operations.
+* **High CPU spikes** on your database server.
+* **Frequent timeouts** and application crashes.
+
+### ⏳ Current Status
+There is **no workaround** available for this issue. This performance bottleneck is a structural limitation that will persist until a complete, fact-oriented rewrite of the `webtrees` database schema is developed and released. 
+
+
 ---
 
 ### 2. Improved UID / UUID search

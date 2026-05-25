@@ -44,7 +44,9 @@ Supports all record types: Individual, Family, Source, Repository, Note, Media, 
 > [!CAUTION]
 > **Severe Slowdowns on Large Trees (UID / _UID Searches)**
 > `webtrees` lacks database indexes on `UID` and `_UID` fields. Because of how the current database architecture is structured, there is no way to add manual indexes to mitigate the underlying performance bottleneck. 
-> You can find more information [in this issue opened on webtrees github page][4]. 
+> 
+> You can find more information [in this pull request on webtrees github page][4]. 
+>
 > _**NOTE:** My tree has 962 individuals, 382 families, 253 sources, 674 media objects 1,689 events and works fine for me (2026-05-25)_
 
 ### 📉 The Problem
@@ -76,10 +78,12 @@ affected by the prefix-based search.
 
 ---
 
-### 3. Extended birth / death place search
+### 3. Extended birth / death / burial place search
 
-The **Advanced Search** page gains dropdown modifiers next to the *Birth place*
-and *Death place* fields:
+The **Advanced Search** page gains:
+
+* A field to search by Burial Place that searches `BURI:PLAC` only. Enabling this field manually in standard configurations is cumbersome, so this module displays it permanently.
+* Dropdown modifiers next to the *Birth place* and *Death place* fields:
 
 | Option | Birth behaviour | Death behaviour |
 |--------|-----------------|-----------------|

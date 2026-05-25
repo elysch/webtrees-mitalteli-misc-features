@@ -44,7 +44,7 @@ Supports all record types: Individual, Family, Source, Repository, Note, Media, 
 
 > [!CAUTION]
 > **Severe Slowdowns on Large Trees (UID / _UID Searches)**
-> `webtrees` lacks database indexes on `UID` and `_UID` fields. Because of how the current database architecture is structured, there is no way to add manual indexes to mitigate the underlying performance bottleneck.
+> `webtrees` lacks database indexes on `UID` and `_UID` fields. Because of how the current database architecture is structured, there is no way to add manual indexes to mitigate the underlying performance bottleneck. You can find more information [in this issue opened on webtrees github page][4]
 
 ### 📉 The Problem
 When performing general searches or resolving references, the system is forced to scan every single record in the database one by one (Full Table Scan). If your tree is very large, this will result in:
@@ -148,3 +148,4 @@ GNU General Public License v3.0 or later. See [LICENSE](LICENSE).
  [1]: https://github.com/elysch/webtrees-mitalteli-misc-features/releases/latest
  [2]: https://webtrees.github.io/download
  [3]: https://github.com/elysch/webtrees-mitalteli-misc-features/issues?state=open
+ [4]: https://github.com/fisharebest/webtrees/pull/5145

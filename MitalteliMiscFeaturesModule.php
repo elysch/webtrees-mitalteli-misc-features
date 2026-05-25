@@ -39,13 +39,21 @@ class MitalteliMiscFeaturesModule extends AbstractModule implements
     use ModuleCustomTrait;
     use ModuleGlobalTrait;
 
+    public const CUSTOM_AUTHOR = 'elysch';
+    public const CUSTOM_VERSION = '1.0.0';
+    public const GITHUB_REPO = 'webtrees-mitalteli-misc-features';
+    public const AUTHOR_WEBSITE = 'https://github.com/elysch/webtrees-mitalteli-misc-features/';
+    public const CUSTOM_SUPPORT_URL = self::AUTHOR_WEBSITE . 'issues';
+
+    public const REPORT_TITLE = 'Mitalteli Misc Features';
+
     // -------------------------------------------------------------------------
     // ModuleCustomInterface
     // -------------------------------------------------------------------------
 
     public function title(): string
     {
-        return I18N::translate('Mitalteli Misc Features');
+        return I18N::translate(MitalteliMiscFeaturesModule::REPORT_TITLE);
     }
 
     public function description(): string
@@ -58,22 +66,23 @@ class MitalteliMiscFeaturesModule extends AbstractModule implements
 
     public function customModuleAuthorName(): string
     {
-        return 'elysch';
+        return self::CUSTOM_AUTHOR;
     }
 
     public function customModuleVersion(): string
     {
-        return '2.1.25.1';
+        return self::CUSTOM_VERSION;
     }
 
     public function customModuleLatestVersionUrl(): string
     {
-        return '';
+        return 'https://raw.githubusercontent.com/' . self::CUSTOM_AUTHOR . '/' . self::GITHUB_REPO . '/main/latest-version.txt';
+
     }
 
     public function customModuleSupportUrl(): string
     {
-        return '';
+        return self::AUTHOR_WEBSITE;
     }
 
     // -------------------------------------------------------------------------

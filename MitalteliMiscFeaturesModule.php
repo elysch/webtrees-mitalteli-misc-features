@@ -28,6 +28,7 @@ use Fisharebest\Webtrees\Module\ModuleGlobalInterface;
 use Fisharebest\Webtrees\Module\ModuleGlobalTrait;
 use Fisharebest\Webtrees\Registry;
 use Fisharebest\Webtrees\View;
+use Fisharebest\Webtrees\Webtrees;
 
 /**
  * Misc Features Module for webtrees 2.1.25
@@ -40,12 +41,46 @@ class MitalteliMiscFeaturesModule extends AbstractModule implements
     use ModuleGlobalTrait;
 
     public const CUSTOM_AUTHOR = 'elysch';
-    public const CUSTOM_VERSION = '1.0.0';
+    public const CUSTOM_VERSION = '1.0.1';
     public const GITHUB_REPO = 'webtrees-mitalteli-misc-features';
     public const AUTHOR_WEBSITE = 'https://github.com/elysch/webtrees-mitalteli-misc-features/';
     public const CUSTOM_SUPPORT_URL = self::AUTHOR_WEBSITE . 'issues';
 
     public const REPORT_TITLE = 'Mitalteli Misc Features';
+
+    public const minimumWebtreesVersion = '2.1.0';
+    public const maximumWebtreesVersion = 'undefined'; // no upper limit yet, but we should set one if we start using features that require a minimum version
+
+    /**
+     * Check if the current Webtrees version is acceptable for this module.
+     * returns true if compatible.
+     * Die() with an error message if not compatible.
+     * 
+     * @return bool
+     */
+    public static function isWebtreesVersionAcceptable(): bool
+    {
+
+        //webtrees major version switch
+        if (defined("WT_VERSION")) {
+            $webtreesVersion = WT_VERSION;
+        } else {
+            $webtreesVersion = Webtrees::VERSION;
+        }
+
+        if (! (version_compare($webtreesVersion, SELF::minimumWebtreesVersion, '>=')
+            && ((SELF::maximumWebtreesVersion === 'undefined') ||
+                version_compare($webtreesVersion, SELF::maximumWebtreesVersion, '<='))
+        )) {
+            if (SELF::maximumWebtreesVersion === 'undefined') {
+                die(printf('%s module version %s is not compatible. Supported Webtrees versions are %s and above.', SELF::REPORT_TITLE, SELF::CUSTOM_VERSION, SELF::minimumWebtreesVersion));
+            } else {
+                die(printf('%s module version %s is not compatible. Supported Webtrees versions are between: %s and %s.', SELF::REPORT_TITLE, SELF::CUSTOM_VERSION, SELF::minimumWebtreesVersion, SELF::maximumWebtreesVersion));
+            }
+        }
+
+        return true;
+    }
 
     // -------------------------------------------------------------------------
     // ModuleCustomInterface
@@ -81,7 +116,6 @@ class MitalteliMiscFeaturesModule extends AbstractModule implements
     public function customModuleLatestVersionUrl(): string
     {
         return 'https://raw.githubusercontent.com/' . self::CUSTOM_AUTHOR . '/' . self::GITHUB_REPO . '/main/latest-version.txt';
-
     }
 
     public function customModuleSupportUrl(): string
@@ -267,7 +301,7 @@ class MitalteliMiscFeaturesModule extends AbstractModule implements
         return $translations[$language] ?? [];
     }
 
-        // -------------------------------------------------------------------------
+    // -------------------------------------------------------------------------
     // Helpers
     // -------------------------------------------------------------------------
 

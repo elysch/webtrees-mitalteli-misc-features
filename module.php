@@ -32,4 +32,11 @@ require_once __DIR__ . '/MitalteliMiscFeaturesModule.php';
 
 use MitalteliMiscFeatures\MitalteliMiscFeaturesModule;
 
-return new MitalteliMiscFeaturesModule();
+// If versions are not compatible, the method isWebtreesVersionAcceptable 
+// will die() with an error message. 
+// If they are compatible, the module class will be returned.
+if (MitalteliMiscFeaturesModule::isWebtreesVersionAcceptable()) {
+    return new MitalteliMiscFeaturesModule();
+}
+
+return;

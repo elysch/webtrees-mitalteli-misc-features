@@ -1,7 +1,6 @@
 # Module for webtrees genealogy software. A Miscelaneous features module
 
 [![Latest Release](https://img.shields.io/github/release/elysch/webtrees-mitalteli-misc-features.svg)][1]
-[![webtrees major version](https://img.shields.io/badge/webtrees-v2.0.x-green)][2]
 [![webtrees major version](https://img.shields.io/badge/webtrees-v2.1.x-green)][2]
 [![webtrees major version](https://img.shields.io/badge/webtrees-v2.2.x-green)][2]
 [![Downloads](https://img.shields.io/github/downloads/elysch/webtrees-mitalteli-misc-features/total.svg)]()
@@ -139,7 +138,6 @@ If you experience any bugs or have a feature request, please
 
 | webtrees | PHP | Status |
 |----------|-----|--------|
-| 2.0.x | 7.4+ | ✅ Tested |
 | 2.1.x | 7.4+ | ✅ Tested |
 | 2.2.x | 8.3+ | ✅ Tested |
 

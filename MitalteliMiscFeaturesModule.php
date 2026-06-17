@@ -29,6 +29,7 @@ use Fisharebest\Webtrees\Module\ModuleGlobalTrait;
 use Fisharebest\Webtrees\Registry;
 use Fisharebest\Webtrees\View;
 use Fisharebest\Webtrees\Webtrees;
+use Fisharebest\Webtrees\FlashMessages;
 
 /**
  * Misc Features Module for webtrees 2.1.25
@@ -41,7 +42,7 @@ class MitalteliMiscFeaturesModule extends AbstractModule implements
     use ModuleGlobalTrait;
 
     public const CUSTOM_AUTHOR = 'elysch';
-    public const CUSTOM_VERSION = '1.0.1';
+    public const CUSTOM_VERSION = '1.1.0';
     public const GITHUB_REPO = 'webtrees-mitalteli-misc-features';
     public const AUTHOR_WEBSITE = 'https://github.com/elysch/webtrees-mitalteli-misc-features/';
     public const CUSTOM_SUPPORT_URL = self::AUTHOR_WEBSITE . 'issues';
@@ -72,10 +73,31 @@ class MitalteliMiscFeaturesModule extends AbstractModule implements
             && ((SELF::maximumWebtreesVersion === 'undefined') ||
                 version_compare($webtreesVersion, SELF::maximumWebtreesVersion, '<='))
         )) {
+            #return false;
             if (SELF::maximumWebtreesVersion === 'undefined') {
-                die(printf('%s module version %s is not compatible. Supported Webtrees versions are %s and above.', SELF::REPORT_TITLE, SELF::CUSTOM_VERSION, SELF::minimumWebtreesVersion));
+                // Not possible to use I18N::translate because the module is not yet created. 
+                // So we hardcode the English message here.
+                $message = sprintf('The %1$s version of the “%2$s” module is not compatible with the ' .
+                                   'installed Webtrees (see the README.md file). Supported Webtrees ' .
+                                   'versions are %3$s and above. ' . 
+                                   '&#8680; To disable this module, rename the module directory to ' .
+                                   'contain a period (.). &#8678;',
+                                   SELF::CUSTOM_VERSION, SELF::REPORT_TITLE, 
+                                   SELF::minimumWebtreesVersion);
+                FlashMessages::addMessage($message, 'danger');
+                return false;
             } else {
-                die(printf('%s module version %s is not compatible. Supported Webtrees versions are between: %s and %s.', SELF::REPORT_TITLE, SELF::CUSTOM_VERSION, SELF::minimumWebtreesVersion, SELF::maximumWebtreesVersion));
+                // Not possible to use I18N::translate because the module is not yet created. 
+                // So we hardcode the English message here.
+                $message = I18N::translate('The %1$s version of the “%2$s” module is not compatible ' . 
+                                   'with the installed Webtrees (see the README.md file). Supported ' . 
+                                   'Webtrees versions are between %3$s and %4$s. ' .
+                                   '&#8680; To disable this module, rename the module directory to ' .
+                                   'contain a period (.). &#8678;',
+                                   SELF::CUSTOM_VERSION, SELF::REPORT_TITLE, 
+                                   SELF::minimumWebtreesVersion, SELF::maximumWebtreesVersion);
+                FlashMessages::addMessage($message, 'danger');
+                return false;
             }
         }
 

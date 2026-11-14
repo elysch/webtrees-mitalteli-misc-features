@@ -206,7 +206,10 @@ class UidSearchService extends SearchService
 
         if (!isset($cache[$method])) {
             $ref = new \ReflectionMethod(SearchService::class, $method);
-            $ref->setAccessible(true);
+            // Needed to call the 'private' method before PHP 8.1 (a no-op, and deprecated in later PHP versions).
+            if (PHP_VERSION_ID < 80100) {
+                $ref->setAccessible(true);
+            }
             $cache[$method] = $ref;
         }
 

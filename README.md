@@ -108,7 +108,7 @@ Adds `COHABITATION` as a recognised value for `MARR:TYPE`, displayed as
 1. Download the latest release ZIP.
 2. Unzip into `webtrees/modules_v4/mitalteli-misc-features/`.
 3. Log in to webtrees as an administrator.
-4. Go to **Control panel → Modules → All modules** and enable *Mitalteli Misc Features*.
+4. Go to **Control panel → Modules → All modules** and enable *⛮ Mitalteli Misc Features* (the ⛮ prefix sorts the module next to the author's other modules).
 
 *NOTE: The directory name must have a maximum length of 30 characters.*
 
@@ -116,7 +116,7 @@ Adds `COHABITATION` as a recognised value for `MARR:TYPE`, displayed as
 
 ## Translation
 
-This module contains a small number of translatable strings. To add a new
+This module contains a small number of translatable strings (already translated into ca, de, en, es, fr, it and nl). To add a new
 language, copy `resources/lang/es.php` and replace the Spanish text with your
 translation. Use the official two-letter ISO 639-1 language code as the
 filename (e.g. `fr.php`, `de.php`). See `webtrees/resources/lang/` for the

@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 namespace MitalteliMiscFeatures\CommonMark;
 
+use Fisharebest\Webtrees\Auth;
 use Fisharebest\Webtrees\GedcomRecord;
 use MitalteliMiscFeatures\WebtreesCompat;
 use Fisharebest\Webtrees\Tree;
@@ -35,6 +36,27 @@ use MitalteliMiscFeatures\Services\UidSearchService;
  */
 class UidParser implements InlineParserInterface
 {
+    /**
+     * Maximum number of DIFFERENT uids resolved per request.
+     *
+     * Every resolution runs up to 7 LIKE '%...%' table scans (see findRecordByUid()), and webtrees has no
+     * index on UID/_UID. Without a cap, a note with hundreds of #UID# references (written by any editor)
+     * makes every visitor that opens it trigger thousands of scans (CWE-400 / CWE-770).
+     * Past the cap the text is left as plain text.
+     */
+    private const MAX_LOOKUPS_PER_REQUEST = 50;
+
+    /**
+     * Resolved uids for the current request (a repeated #UID# costs nothing).
+     * The key includes the user id, so nothing can leak between users if the PHP worker is long-running.
+     *
+     * @var array<string,GedcomRecord|null>
+     */
+    private static array $cache = [];
+
+    /** Number of uids actually searched in the database in this request. */
+    private static int $lookups = 0;
+
     private Tree          $tree;
     private UidSearchService $search_service;
 
@@ -116,6 +138,25 @@ class UidParser implements InlineParserInterface
     }
 
     private function findRecordByUid(string $uid): ?GedcomRecord
+    {
+        // Same normalisation as firstMatchingUidRecord(): UUIDs with and without dashes share one entry.
+        $key = $this->tree->id() . ':' . (string) Auth::id() . ':' .
+            strtolower(substr((string) preg_replace('/[^0-9a-fA-F]/', '', $uid), 0, 32));
+
+        if (array_key_exists($key, self::$cache)) {
+            return self::$cache[$key];
+        }
+
+        if (self::$lookups >= self::MAX_LOOKUPS_PER_REQUEST) {
+            return null; // Not cached: the reference is simply not turned into a link.
+        }
+
+        self::$lookups++;
+
+        return self::$cache[$key] = $this->searchRecordByUid($uid);
+    }
+
+    private function searchRecordByUid(string $uid): ?GedcomRecord
     {
         $trees = [$this->tree];
         $terms = [$uid];

@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 namespace MitalteliMiscFeatures;
 
+use Fisharebest\Localization\Translation;
 use Fisharebest\Webtrees\Services\GedcomImportService;
 use Fisharebest\Webtrees\Services\SearchService;
 use Fisharebest\Webtrees\Services\TreeService;
@@ -42,15 +43,46 @@ class MitalteliMiscFeaturesModule extends AbstractModule implements
     use ModuleGlobalTrait;
 
     public const CUSTOM_AUTHOR = 'elysch';
-    public const CUSTOM_VERSION = '1.1.0';
+    public const CUSTOM_VERSION = '1.1.1';
     public const GITHUB_REPO = 'webtrees-mitalteli-misc-features';
     public const AUTHOR_WEBSITE = 'https://github.com/elysch/webtrees-mitalteli-misc-features/';
     public const CUSTOM_SUPPORT_URL = self::AUTHOR_WEBSITE . 'issues';
 
+    /**
+     * Sorts the module next to the author's other modules in the module list.
+     *
+     * The module title is the name of the module. Every place that translates it (title(), the module
+     * list, the control panel...) gets the sorting prefix from customTranslations(), in every language
+     * (also when the language has no translation of it and the English text is used).
+     * This constant and customTranslations() are the only places that define the title structure.
+     */
+    private const TITLE_PREFIX = "\u{26EE} "; # ⛮
+
+    /** Untranslated (English) module title, WITHOUT the prefix. */
     public const REPORT_TITLE = 'Mitalteli Misc Features';
 
     public const minimumWebtreesVersion = '2.1.0';
     public const maximumWebtreesVersion = 'undefined'; // no upper limit yet, but we should set one if we start using features that require a minimum version
+
+    /**
+     * Name of the module as shown to the user (TITLE_PREFIX + translated module title).
+     *
+     * The prefix is injected by customTranslations(), so this is the same text that
+     * I18N::translate(self::REPORT_TITLE) returns anywhere else.
+     */
+    public static function displayTitle(): string
+    {
+        return I18N::translate(self::REPORT_TITLE);
+    }
+
+    /**
+     * Module title for the messages shown BEFORE the module exists (see isWebtreesVersionAcceptable()).
+     * customTranslations() is not available yet, so the prefix is added by hand, from the same constant.
+     */
+    private static function untranslatedDisplayTitle(): string
+    {
+        return self::TITLE_PREFIX . self::REPORT_TITLE;
+    }
 
     /**
      * Check if the current Webtrees version is acceptable for this module.
@@ -82,19 +114,19 @@ class MitalteliMiscFeaturesModule extends AbstractModule implements
                                    'versions are %3$s and above. ' . 
                                    '&#8680; To disable this module, rename the module directory to ' .
                                    'contain a period (.). &#8678;',
-                                   SELF::CUSTOM_VERSION, SELF::REPORT_TITLE, 
+                                   SELF::CUSTOM_VERSION, self::untranslatedDisplayTitle(), 
                                    SELF::minimumWebtreesVersion);
                 FlashMessages::addMessage($message, 'danger');
                 return false;
             } else {
-                // Not possible to use I18N::translate because the module is not yet created. 
-                // So we hardcode the English message here.
+                // The module is not yet created, so its customTranslations() are not loaded;
+                // only the core translations (if any) apply to this message.
                 $message = I18N::translate('The %1$s version of the “%2$s” module is not compatible ' . 
                                    'with the installed Webtrees (see the README.md file). Supported ' . 
                                    'Webtrees versions are between %3$s and %4$s. ' .
                                    '&#8680; To disable this module, rename the module directory to ' .
                                    'contain a period (.). &#8678;',
-                                   SELF::CUSTOM_VERSION, SELF::REPORT_TITLE, 
+                                   SELF::CUSTOM_VERSION, self::untranslatedDisplayTitle(), 
                                    SELF::minimumWebtreesVersion, SELF::maximumWebtreesVersion);
                 FlashMessages::addMessage($message, 'danger');
                 return false;
@@ -110,7 +142,8 @@ class MitalteliMiscFeaturesModule extends AbstractModule implements
 
     public function title(): string
     {
-        return I18N::translate(MitalteliMiscFeaturesModule::REPORT_TITLE);
+        /* I18N: Name of a module */
+        return self::displayTitle();
     }
 
     public function description(): string
@@ -235,9 +268,12 @@ class MitalteliMiscFeaturesModule extends AbstractModule implements
 (function () {
     var UID_REGEX = /^[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}$|^[0-9a-f]{32}$|^[0-9a-f]{36}$|^[0-9a-f]{38}$/i;
     var WARNING_ID = "mitalteli-uid-search-warning";
-    var MSG_TEXT   = ' . json_encode(I18N::translate(
-            'UID search uses only the first 32 characters. Results may include records with a similar UID prefix.'
-        )) . ';
+    var MSG_TEXT   = ' . (json_encode(
+            I18N::translate(
+                'UID search uses only the first 32 characters. Results may include records with a similar UID prefix.'
+            ),
+            JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT
+        ) ?: '""') . ';
 
     function getInsertionPoint(input) {
         // Walk up from the input until we find a direct child of the <form>,
@@ -302,9 +338,13 @@ class MitalteliMiscFeaturesModule extends AbstractModule implements
      * webtrees calls this method and merges the returned array into the active
      * language catalogue, so I18N::translate() picks them up automatically.
      *
+     * The strings are read from resources/lang/<language>.php (ca, de, en, es, fr, it, nl).
      * Only strings that are NOT already translated by the webtrees core need
-     * to be listed here.  Currently that is only 'Cohabitation', which was
-     * added to MarriageType by this module and has no core translation.
+     * to be listed there: 'Cohabitation' (added to MarriageType by this module) and the
+     * UID search warning.
+     *
+     * The module title (REPORT_TITLE) is always added, in every language, with the
+     * TITLE_PREFIX in front (also when the language has no translation of it).
      *
      * @param string $language  ISO 639 language code, e.g. 'es', 'en', 'fr'
      *
@@ -312,15 +352,20 @@ class MitalteliMiscFeaturesModule extends AbstractModule implements
      */
     public function customTranslations(string $language): array
     {
-        $translations = [
-            'es' => [
-                'Cohabitation' => 'Cohabitación',
-                'UID search uses only the first 32 characters. Results may include records with a similar UID prefix.'
-                    => 'La búsqueda por UID utiliza solo los primeros 32 caracteres. Los resultados pueden incluir registros con un prefijo de UID similar.',
-            ],
-        ];
+        // Translations live in resources/lang/<language>.php. The language code comes from webtrees,
+        // but it is checked anyway before it is used in a file name (path traversal, CWE-22).
+        $file         = $this->resourcesFolder() . 'lang' . DIRECTORY_SEPARATOR . $language . '.php';
+        $translations = preg_match('/^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})*$/', $language) === 1 && is_file($file)
+            ? (new Translation($file))->asArray()
+            : [];
 
-        return $translations[$language] ?? [];
+        // The module title is the name of the module. Every place that translates it (title(), the module
+        // list, the control panel...) gets the sorting prefix from here, in every language
+        // (also when the language has no translation of it and the English text is used).
+        $title = $translations[self::REPORT_TITLE] ?? self::REPORT_TITLE;
+        $translations[self::REPORT_TITLE] = self::TITLE_PREFIX . (is_string($title) ? $title : self::REPORT_TITLE);
+
+        return $translations;
     }
 
     // -------------------------------------------------------------------------

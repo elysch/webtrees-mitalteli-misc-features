@@ -188,9 +188,9 @@ $("#<?= e($table_id) ?>")
                 </th>
                     <?php
                          $field_name = 'INDI:BIRT:PLAC';
-                         $birthExtraLabel = (isset($modifiers[$field_name]) && isset($birth_place_options[$modifiers[$field_name]]) ? " (" . $birth_place_options[$modifiers[$field_name]] . ")" : "");
+                         $birthExtraLabel = (isset($modifiers[$field_name]) && is_string($modifiers[$field_name]) && isset($birth_place_options[$modifiers[$field_name]]) ? $birth_place_options[$modifiers[$field_name]] : "");
                     ?>
-                <th><?= I18N::translate('Place' . $birthExtraLabel) ?></th>
+                <th><?= $birthExtraLabel === '' ? I18N::translate('Place') : /* I18N: Column heading; %s is the kind of events searched, e.g. “BIRT + CHR + BAPM”. Word order may change. */ I18N::translate('Place (%s)', e($birthExtraLabel)) ?></th>
                 <th>
                     <i class="icon-children" title="<?= I18N::translate('Children') ?>"></i>
                 </th>
@@ -203,9 +203,9 @@ $("#<?= e($table_id) ?>")
                 <th><?= I18N::translate('Age') ?></th>
                     <?php
                          $field_name = 'INDI:DEAT:PLAC';
-                         $deathExtraLabel = (isset($modifiers[$field_name]) && isset($death_place_options[$modifiers[$field_name]]) ? " (" . $death_place_options[$modifiers[$field_name]] . ")" : "");
+                         $deathExtraLabel = (isset($modifiers[$field_name]) && is_string($modifiers[$field_name]) && isset($death_place_options[$modifiers[$field_name]]) ? $death_place_options[$modifiers[$field_name]] : "");
                     ?>
-                <th><?= I18N::translate('Place' . $deathExtraLabel) ?></th>
+                <th><?= $deathExtraLabel === '' ? I18N::translate('Place') : /* I18N: Column heading; %s is the kind of events searched, e.g. “BIRT + CHR + BAPM”. Word order may change. */ I18N::translate('Place (%s)', e($deathExtraLabel)) ?></th>
                 <th><?= I18N::translate('Last change') ?></th>
                 <th hidden></th>
                 <th hidden></th>
@@ -278,8 +278,8 @@ $("#<?= e($table_id) ?>")
                                     $array = $individual->getAllEventPlaces(Gedcom::BIRTH_EVENTS);
                                     break;
                                 default:
-                                    if (in_array($modifiers[$field_name], Gedcom::BIRTH_EVENTS)) {
-                                        $array = $individual->getAllEventPlaces($modifiers[$field_name]);
+                                    if (in_array($modifiers[$field_name], Gedcom::BIRTH_EVENTS, true)) {
+                                        $array = $individual->getAllEventPlaces([$modifiers[$field_name]]);
                                     } else {
                                         $array = $individual->getAllBirthPlaces();
                                     }
@@ -336,10 +336,10 @@ $("#<?= e($table_id) ?>")
                                     $array = $individual->getAllEventPlaces(Gedcom::DEATH_EVENTS);
                                     break;
                                 default:
-                                    if (in_array($modifiers[$field_name], Gedcom::DEATH_EVENTS)) {
-                                        $array = $individual->getAllEventPlaces([ $modifiers[$field_name] ]);
+                                    if (in_array($modifiers[$field_name], Gedcom::DEATH_EVENTS, true)) {
+                                        $array = $individual->getAllEventPlaces([$modifiers[$field_name]]);
                                     } else {
-                                        $array = $individual->getAllBirthPlaces();
+                                        $array = $individual->getAllDeathPlaces();
                                     }
                             }
                         } else {

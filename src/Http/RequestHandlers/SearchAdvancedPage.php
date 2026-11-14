@@ -23,11 +23,16 @@ use Psr\Http\Server\RequestHandlerInterface;
 
 use function array_fill_keys;
 use function array_filter;
+use function array_flip;
 use function array_key_exists;
 use function array_keys;
 use function array_map;
 use function array_merge;
 use function implode;
+use function is_string;
+use function mb_substr;
+use function preg_match;
+use function preg_replace;
 use function strcmp;
 use function strtr;
 
@@ -91,6 +96,9 @@ class SearchAdvancedPage implements RequestHandlerInterface
         'FAM:DIV:DATE',   'FAM:SLGS:DATE',  'FAM:SLGS:PLAC',
     ];
 
+    /** Longest search value accepted (it is also written to the search log for visitors). */
+    private const MAX_VALUE_LENGTH = 255;
+
     private SearchService $search_service;
 
     public function __construct(SearchService $search_service)
@@ -102,8 +110,8 @@ class SearchAdvancedPage implements RequestHandlerInterface
     {
         $tree           = Validator::attributes($request)->tree();
         $default_fields = array_fill_keys(self::DEFAULT_ADVANCED_FIELDS, '');
-        $fields         = Validator::queryParams($request)->array('fields') ?: $default_fields;
-        $modifiers      = Validator::queryParams($request)->array('modifiers');
+        $fields         = $this->sanitiseFields(Validator::queryParams($request)->array('fields')) ?: $default_fields;
+        $modifiers      = $this->sanitiseModifiers(Validator::queryParams($request)->array('modifiers'), $fields);
 
         $fields = array_map(
             static fn (string $x): string => preg_replace('/^\s+|\s+$/uD', '', $x),
@@ -138,6 +146,65 @@ class SearchAdvancedPage implements RequestHandlerInterface
             'birth_place_options' => $this->birthPlaceOptions(),
             'death_place_options' => $this->deathPlaceOptions(),
         ]);
+    }
+
+    /**
+     * Keep only the fields this page knows about, with plain-text values.
+     *
+     * The field NAMES come straight from the query string and the core SearchService uses them to build
+     * SQL LIKE patterns and even a PHP regular expression (e.g. the part after "INDI:NAME:"), so an
+     * arbitrary name is a regex-injection / ReDoS vector (CWE-185, CWE-1333) and a non-string value is a
+     * TypeError (HTTP 500). Allow-listing the names closes both.
+     *
+     * @param array<mixed> $fields
+     *
+     * @return array<string,string>
+     */
+    private function sanitiseFields(array $fields): array
+    {
+        $allowed = array_flip(array_merge(self::DEFAULT_ADVANCED_FIELDS, self::OTHER_ADVANCED_FIELDS));
+        $clean   = [];
+
+        foreach ($fields as $name => $value) {
+            if (!is_string($value) || !array_key_exists((string) $name, $allowed)) {
+                continue;
+            }
+
+            // No control characters (they would end up in the search log), and a sane length.
+            $value = (string) preg_replace('/[\x00-\x1F\x7F]/u', '', $value);
+
+            $clean[(string) $name] = mb_substr($value, 0, self::MAX_VALUE_LENGTH);
+        }
+
+        return $clean;
+    }
+
+    /**
+     * Keep only short, plain modifiers (EXACT, BEGINS, OR, AND, BIRT, 5...) of the fields that are searched.
+     * Name fields always get a modifier: the core reads $modifiers[$field] without checking that it exists.
+     *
+     * @param array<mixed>         $modifiers
+     * @param array<string,string> $fields
+     *
+     * @return array<string,string>
+     */
+    private function sanitiseModifiers(array $modifiers, array $fields): array
+    {
+        $clean = [];
+
+        foreach ($modifiers as $name => $value) {
+            if (array_key_exists((string) $name, $fields) && is_string($value) && preg_match('/^[A-Z0-9_]{1,10}$/', $value) === 1) {
+                $clean[(string) $name] = $value;
+            }
+        }
+
+        foreach (array_keys($fields) as $name) {
+            if (preg_match('/(GIVN|SURN)$/', $name) === 1 && !array_key_exists($name, $clean)) {
+                $clean[$name] = 'EXACT';
+            }
+        }
+
+        return $clean;
     }
 
     private function otherFields(array $fields): array

@@ -17,6 +17,7 @@ use Fisharebest\Webtrees\Registry;
 use Fisharebest\Webtrees\Services\SearchService;
 use Fisharebest\Webtrees\Validator;
 use Illuminate\Support\Collection;
+use MitalteliMiscFeatures\WebtreesCompat;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\RequestHandlerInterface;
@@ -30,9 +31,12 @@ use function array_map;
 use function array_merge;
 use function implode;
 use function is_string;
+use function method_exists;
 use function mb_substr;
 use function preg_match;
 use function preg_replace;
+use function redirect;
+use function route;
 use function strcmp;
 use function strtr;
 
@@ -41,6 +45,11 @@ use function strtr;
  *
  * This class is bound in the IoC container to replace the core handler:
  *   app()->bind(CoreSearchAdvancedPage::class, SearchAdvancedPage::class)
+ * (see WebtreesCompat::coreSearchAdvancedClass() for what "the core handler" is in each webtrees version).
+ *
+ * webtrees 2.0 - 2.2 send GET /search-advanced to this handler and POST /search-advanced to a different core
+ * handler (SearchAdvancedAction), which is not replaced.  webtrees 2.3 sends both to the same controller, so
+ * handle() also does the work of the POST handler (see post()).
  *
  * It adds:
  *  - birth_place_options: search across BIRT + CHR + BAPM
@@ -96,6 +105,13 @@ class SearchAdvancedPage implements RequestHandlerInterface
         'FAM:DIV:DATE',   'FAM:SLGS:DATE',  'FAM:SLGS:PLAC',
     ];
 
+    /** Fields that the 2.3 core page offers and the 2.1 / 2.2 core pages do not. Only added on webtrees 2.3. */
+    private const OTHER_ADVANCED_FIELDS_V23 = [
+        'INDI:EDUC',
+        'INDI:PROP',
+        'INDI:_TODO',
+    ];
+
     /** Longest search value accepted (it is also written to the search log for visitors). */
     private const MAX_VALUE_LENGTH = 255;
 
@@ -108,6 +124,12 @@ class SearchAdvancedPage implements RequestHandlerInterface
 
     public function handle(ServerRequestInterface $request): ResponseInterface
     {
+        // webtrees 2.3 has one controller for both verbs (the controller that this class replaces), and it
+        // calls handle() for both.  In 2.0 - 2.2 a POST never gets here.
+        if ($request->getMethod() === 'POST') {
+            return $this->post($request);
+        }
+
         $tree           = Validator::attributes($request)->tree();
         $default_fields = array_fill_keys(self::DEFAULT_ADVANCED_FIELDS, '');
         $fields         = $this->sanitiseFields(Validator::queryParams($request)->array('fields')) ?: $default_fields;
@@ -149,6 +171,56 @@ class SearchAdvancedPage implements RequestHandlerInterface
     }
 
     /**
+     * The form of the page was submitted (webtrees 2.3 only): go back to the page with the data in the URL,
+     * adding the field that was chosen in the "other fields" list.
+     *
+     * Same as the core controller, but the field names are checked here as well: the page checks them again
+     * (see sanitiseFields()) so this is only about not copying garbage into the redirect URL.
+     */
+    private function post(ServerRequestInterface $request): ResponseInterface
+    {
+        $tree        = Validator::attributes($request)->tree();
+        $fields      = $this->sanitiseFields(Validator::parsedBody($request)->array('fields'));
+        $modifiers   = $this->sanitiseModifiers(Validator::parsedBody($request)->array('modifiers'), $fields);
+        $other_field = Validator::parsedBody($request)->string('other_field', '');
+
+        if ($other_field !== '' && array_key_exists($other_field, array_flip($this->allAdvancedFields()))) {
+            $fields[$other_field] = '';
+        }
+
+        return redirect(route((string) WebtreesCompat::coreSearchAdvancedClass(), [
+            'fields'    => $fields,
+            'modifiers' => $modifiers,
+            'tree'      => $tree->name(),
+        ]));
+    }
+
+    /**
+     * The "other fields" of the advanced search: the ones of the core page, plus the ones of the 2.3 core page
+     * when running on 2.3 (so that the 2.3 page does not lose any option because of this module).
+     *
+     * @return array<int,string>
+     */
+    private function otherAdvancedFields(): array
+    {
+        if (WebtreesCompat::isV23()) {
+            return array_merge(self::OTHER_ADVANCED_FIELDS, self::OTHER_ADVANCED_FIELDS_V23);
+        }
+
+        return self::OTHER_ADVANCED_FIELDS;
+    }
+
+    /**
+     * Every field name this page accepts.
+     *
+     * @return array<int,string>
+     */
+    private function allAdvancedFields(): array
+    {
+        return array_merge(self::DEFAULT_ADVANCED_FIELDS, $this->otherAdvancedFields());
+    }
+
+    /**
      * Keep only the fields this page knows about, with plain-text values.
      *
      * The field NAMES come straight from the query string and the core SearchService uses them to build
@@ -162,7 +234,7 @@ class SearchAdvancedPage implements RequestHandlerInterface
      */
     private function sanitiseFields(array $fields): array
     {
-        $allowed = array_flip(array_merge(self::DEFAULT_ADVANCED_FIELDS, self::OTHER_ADVANCED_FIELDS));
+        $allowed = array_flip($this->allAdvancedFields());
         $clean   = [];
 
         foreach ($fields as $name => $value) {
@@ -209,13 +281,19 @@ class SearchAdvancedPage implements RequestHandlerInterface
 
     private function otherFields(array $fields): array
     {
-        $default_facts = new Collection(self::OTHER_ADVANCED_FIELDS);
+        $default_facts = new Collection($this->otherAdvancedFields());
 
         $comparator = static function (string $x, string $y): int {
             $ef     = Registry::elementFactory();
             $label1 = $ef->make(strtr($x, [':DATE' => '', ':PLAC' => '', ':TYPE' => '']))->label();
             $label2 = $ef->make(strtr($y, [':DATE' => '', ':PLAC' => '', ':TYPE' => '']))->label();
-            return I18N::comparator()($label1, $label2) ?: strcmp($x, $y);
+
+            // I18N::comparator() (a Closure) was replaced by I18N::compare() in webtrees 2.3.
+            $compare = method_exists(I18N::class, 'compare')
+                ? I18N::compare($label1, $label2)
+                : I18N::comparator()($label1, $label2);
+
+            return $compare ?: strcmp($x, $y);
         };
 
         return $default_facts
@@ -228,7 +306,7 @@ class SearchAdvancedPage implements RequestHandlerInterface
     private function fieldLabels(): array
     {
         $return = [];
-        foreach (array_merge(self::OTHER_ADVANCED_FIELDS, self::DEFAULT_ADVANCED_FIELDS) as $field) {
+        foreach (array_merge($this->otherAdvancedFields(), self::DEFAULT_ADVANCED_FIELDS) as $field) {
             $tmp            = strtr($field, ['MOTHER:' => 'INDI:', 'FATHER:' => 'INDI:']);
             $return[$field] = Registry::elementFactory()->make($tmp)->label();
         }

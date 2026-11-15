@@ -9,7 +9,6 @@ declare(strict_types=1);
 
 namespace MitalteliMiscFeatures;
 
-use Fisharebest\Localization\Translation;
 use Fisharebest\Webtrees\Services\GedcomImportService;
 use Fisharebest\Webtrees\Services\SearchService;
 use Fisharebest\Webtrees\Services\TreeService;
@@ -19,8 +18,6 @@ use MitalteliMiscFeatures\WebtreesCompat;
 use MitalteliMiscFeatures\Factories\MarkdownFactory;
 use MitalteliMiscFeatures\Http\RequestHandlers\SearchAdvancedPage;
 use Fisharebest\Webtrees\Contracts\MarkdownFactoryInterface;
-use Fisharebest\Webtrees\Http\RequestHandlers\SearchAdvancedPage as CoreSearchAdvancedPage;
-use Fisharebest\Webtrees\Http\RequestHandlers\SearchGeneralPage;
 use Fisharebest\Webtrees\I18N;
 use Fisharebest\Webtrees\Module\AbstractModule;
 use Fisharebest\Webtrees\Module\ModuleCustomInterface;
@@ -33,7 +30,7 @@ use Fisharebest\Webtrees\Webtrees;
 use Fisharebest\Webtrees\FlashMessages;
 
 /**
- * Misc Features Module for webtrees 2.1.25
+ * Misc Features Module for webtrees 2.1 / 2.2 / 2.3
  */
 class MitalteliMiscFeaturesModule extends AbstractModule implements
     ModuleCustomInterface,
@@ -43,7 +40,7 @@ class MitalteliMiscFeaturesModule extends AbstractModule implements
     use ModuleGlobalTrait;
 
     public const CUSTOM_AUTHOR = 'elysch';
-    public const CUSTOM_VERSION = '1.1.1';
+    public const CUSTOM_VERSION = '1.2.0';
     public const GITHUB_REPO = 'webtrees-mitalteli-misc-features';
     public const AUTHOR_WEBSITE = 'https://github.com/elysch/webtrees-mitalteli-misc-features/';
     public const CUSTOM_SUPPORT_URL = self::AUTHOR_WEBSITE . 'issues';
@@ -190,6 +187,10 @@ class MitalteliMiscFeaturesModule extends AbstractModule implements
      * IoC container so that when webtrees' own RequestHandler middleware calls
      *   app(CoreSearchAdvancedPage::class)->handle($request)
      * it receives our subclass instead.
+     *
+     * webtrees 2.3 does the same (InvokeController resolves the route's class with
+     * Registry::container()->get()), but the route target is now the controller
+     * Http\Controllers\SearchAdvanced.  See WebtreesCompat::coreSearchAdvancedClass().
      */
     public function boot(): void
     {
@@ -206,7 +207,10 @@ class MitalteliMiscFeaturesModule extends AbstractModule implements
         ]);
 
         // 3. Register our view namespace.
-        View::registerNamespace($this->name(), $this->resourcesFolder() . 'views/');
+        //    The templates are copies of core templates with the module's changes, so every generation of
+        //    core templates needs its own copy: views/ for webtrees 2.1 / 2.2, views-2.3/ for webtrees 2.3
+        //    (new route classes, Sex enum, DataTables started by the core JavaScript...).
+        View::registerNamespace($this->name(), $this->resourcesFolder() . (WebtreesCompat::isV23() ? 'views-2.3/' : 'views/'));
 
         // 4. Override core view templates.
         //    First argument MUST start with '::' (webtrees default namespace).
@@ -220,10 +224,14 @@ class MitalteliMiscFeaturesModule extends AbstractModule implements
         //    binding the core class to a factory that returns our subclass is
         //    sufficient — no middleware interface required.
         $treeService = new TreeService(new GedcomImportService());
-        WebtreesCompat::bindInstance(
-            CoreSearchAdvancedPage::class,
-            new SearchAdvancedPage(new UidSearchService($treeService))
-        );
+        $coreSearchAdvanced = WebtreesCompat::coreSearchAdvancedClass();
+
+        if ($coreSearchAdvanced !== null) {
+            WebtreesCompat::bindInstance(
+                $coreSearchAdvanced,
+                new SearchAdvancedPage(new UidSearchService($treeService))
+            );
+        }
 
         // 6. Register UidSearchService as the global SearchService so that
         //    ALL searches in webtrees (simple search, advanced search,
@@ -233,13 +241,18 @@ class MitalteliMiscFeaturesModule extends AbstractModule implements
         $uidSearchService   = new UidSearchService($treeService);
 
         if (WebtreesCompat::isV22()) {
-            // 2.2: Container caches instances. Strategy:
+            // 2.2 / 2.3: Container caches instances. Strategy:
             // 1. Bind UidSearchService temporarily.
-            // 2. Force-build SearchGeneralPage — cached with UidSearchService.
+            // 2. Force-build the general search handler (SearchGeneralPage in 2.2, the SearchGeneral
+            //    controller in 2.3) — cached with UidSearchService.
             // 3. Restore plain SearchService so SearchReplaceAction and all
             //    other auto-wired handlers get exact matching.
+            $coreSearchGeneral = WebtreesCompat::coreSearchGeneralClass();
+
             WebtreesCompat::bindInstance(SearchService::class, $uidSearchService);
-            \Fisharebest\Webtrees\Registry::container()->get(SearchGeneralPage::class);
+            if ($coreSearchGeneral !== null) {
+                Registry::container()->get($coreSearchGeneral);
+            }
             WebtreesCompat::bindInstance(SearchService::class, $plainSearchService);
         } else {
             // 2.1/2.0: Laravel container does not cache handler instances.
@@ -339,6 +352,10 @@ class MitalteliMiscFeaturesModule extends AbstractModule implements
      * language catalogue, so I18N::translate() picks them up automatically.
      *
      * The strings are read from resources/lang/<language>.php (ca, de, en, es, fr, it, nl).
+     * Each file is a plain PHP file that returns an array (English text => translated text).
+     * It is read here, without a translation class, because the class that webtrees uses for
+     * that changed (Fisharebest\Localization\Translation up to 2.2, Fisharebest\Webtrees\I18N\Translation
+     * in 2.3) and the plain array is all that customTranslations() has to return.
      * Only strings that are NOT already translated by the webtrees core need
      * to be listed there: 'Cohabitation' (added to MarriageType by this module) and the
      * UID search warning.
@@ -356,7 +373,7 @@ class MitalteliMiscFeaturesModule extends AbstractModule implements
         // but it is checked anyway before it is used in a file name (path traversal, CWE-22).
         $file         = $this->resourcesFolder() . 'lang' . DIRECTORY_SEPARATOR . $language . '.php';
         $translations = preg_match('/^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})*$/', $language) === 1 && is_file($file)
-            ? (new Translation($file))->asArray()
+            ? self::readLanguageFile($file)
             : [];
 
         // The module title is the name of the module. Every place that translates it (title(), the module
@@ -371,6 +388,30 @@ class MitalteliMiscFeaturesModule extends AbstractModule implements
     // -------------------------------------------------------------------------
     // Helpers
     // -------------------------------------------------------------------------
+
+    /**
+     * Read one of the module's own language files (resources/lang/<language>.php).
+     * The file returns an array of English text => translated text; anything else is ignored.
+     *
+     * @return array<string,string>
+     */
+    private static function readLanguageFile(string $file): array
+    {
+        // A static closure: the file runs without access to $this or to this method's variables.
+        $messages = (static function (string $file) {
+            return include $file;
+        })($file);
+
+        if (!is_array($messages)) {
+            return [];
+        }
+
+        return array_filter(
+            $messages,
+            static fn ($translation, $message): bool => is_string($message) && is_string($translation),
+            ARRAY_FILTER_USE_BOTH
+        );
+    }
 
     public function resourcesFolder(): string
     {

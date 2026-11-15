@@ -14,16 +14,17 @@ use Fisharebest\Webtrees\Gedcom;
 use Fisharebest\Webtrees\GedcomRecord;
 use Fisharebest\Webtrees\I18N;
 use Fisharebest\Webtrees\Services\SearchService;
+use Fisharebest\Webtrees\DB;
 use Fisharebest\Webtrees\Tree;
-use Illuminate\Database\Capsule\Manager as DB;
 use Illuminate\Support\Collection;
 use MitalteliMiscFeatures\GedcomUid;
 
 /**
- * Extends SearchService with a corrected rawGedcomFilter for webtrees 2.1 / 2.0.
+ * Extends SearchService with a corrected rawGedcomFilter for all supported webtrees versions
+ * (2.0 - 2.3: the core rawGedcomFilter still recognises only two UID formats).
  *
- * NOT used on webtrees 2.2+ because the core SearchService already contains
- * the equivalent fix (rawGedcomFilter uses Gedcom::REGEX_UID in 2.2).
+ * The database is accessed through Fisharebest\Webtrees\DB, which exists in every supported
+ * version (in 2.3 it no longer extends the Illuminate Capsule Manager, but still offers DB::table()).
  *
  * The problem in the unpatched 2.1/2.0 core:
  *   rawGedcomFilter() checks search terms against a hard-coded regex that only
